@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Europe — October 2026</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+  <style>
+    :root {
+      --purple: #966b9d;
+      --rose:   #c98686;
+      --amber:  #f2b880;
+      --cream:  #fff4ec;
+      --linen:  #e7cfbc;
+      --dark:   #2c1a1a;
+      --mid:    #7c5c5c;
+      --subtle: #b89090;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--cream);
+      color: var(--dark);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────── */
+    .header {
+      padding: 56px 48px 48px;
+      border-bottom: 1px solid var(--linen);
+      position: relative;
+      overflow: hidden;
+    }
+    .gradient-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--purple) 0%, var(--rose) 45%, var(--amber) 100%);
+    }
+    .header-watermark {
+      position: absolute;
+      right: -10px; top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(90px, 18vw, 220px);
+      font-weight: 300;
+      color: rgba(150, 107, 157, 0.055);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .header-inner { position: relative; }
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(44px, 9vw, 96px);
+      font-weight: 300;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+    }
+    h1 em { font-style: italic; color: var(--purple); }
+    .header-cities {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-style: italic;
+      color: var(--mid);
+      margin-top: 20px;
+      letter-spacing: 0.04em;
+    }
+    .header-meta {
+      display: flex;
+      gap: 36px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .meta-item { font-size: 10px; color: var(--subtle); letter-spacing: 0.1em; }
+    .meta-item strong {
+      display: block;
+      font-size: 12px;
+      color: var(--dark);
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+
+    /* ─── LOADING ────────────────────────────────────── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      gap: 10px;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .ldot { width: 7px; height: 7px; border-radius: 50%; animation: pulse 1.3s ease-in-out infinite; }
+    .ldot:nth-child(1) { background: var(--purple); }
+    .ldot:nth-child(2) { background: var(--rose);   animation-delay: .18s; }
+    .ldot:nth-child(3) { background: var(--amber);  animation-delay: .36s; }
+    @keyframes pulse { 0%,80%,100%{transform:scale(.55);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+    /* ─── SECTION ────────────────────────────────────── */
+    .section { padding: 40px 48px; }
+    .section + .section { border-top: 1px solid var(--linen); }
+    .section-head { margin-bottom: 32px; }
+    .section-eyebrow {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-bottom: 6px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      font-weight: 400;
+    }
+
+    /* ─── LEGEND ─────────────────────────────────────── */
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 14px 48px;
+      border-top: 1px solid var(--linen);
+      border-bottom: 1px solid var(--linen);
+      flex-wrap: wrap;
+    }
+    .legend-heading {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-right: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--mid);
+    }
+    .legend-pip { width: 22px; height: 7px; border-radius: 4px; }
+    .kml-pip {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--amber);
+      border: 2px solid rgba(255,255,255,.7);
+      box-shadow: 0 1px 4px rgba(0,0,0,.15);
+    }
+    .live-badge {
+      margin-left: auto;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 12px 4px 8px;
+      border-radius: 20px;
+      background: rgba(150, 107, 157, 0.09);
+      border: 1px solid rgba(150, 107, 157, 0.22);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--purple);
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--purple);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ─── GANTT ──────────────────────────────────────── */
+    .gantt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+    .gantt-inner { min-width: 760px; }
+
+    .g-header {
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--linen);
+      margin-bottom: 4px;
+    }
+    .g-lbl { width: 120px; flex-shrink: 0; }
+    .g-dates {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(23, 1fr);
+    }
+    .g-date { text-align: center; padding: 0 1px; }
+    .g-date-n {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--dark);
+      line-height: 1.2;
+    }
+    .g-date-dow {
+      display: block;
+      font-size: 7px;
+      color: var(--subtle);
+      line-height: 1.4;
+    }
+    .g-date-m {
+      display: block;
+      font-size: 7px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      line-height: 1.4;
+    }
+    .g-date.wknd .g-date-n   { color: var(--rose); }
+    .g-date.wknd .g-date-dow { color: var(--rose); opacity: .75; }
+
+    .g-group { display: flex; flex-direction: column; gap: 5px; padding: 14px 0; }
+    .g-group + .g-group { border-top: 1px solid rgba(231,207,188,.55); }
+    .g-row { display: flex; align-items: center; min-height: 42px; }
+    .g-row-label { width: 120px; flex-shrink: 0; padding-right: 14px; }
+    .g-city-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .g-city-sub {
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-top: 3px;
+    }
+    .g-transit-label {
+      font-size: 9px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .g-cells { flex: 1; position: relative; height: 42px; }
+    .g-bg {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: repeat(23, 1fr);
+      pointer-events: none; z-index: 0;
+    }
+    .g-bg-cell { border-right: 1px solid rgba(231,207,188,.28); }
+    .g-bg-cell:last-child { border-right: none; }
+    .g-bg-cell.wknd { background: rgba(201,134,134,.06); }
+
+    .g-bar {
+      position: absolute;
+      top: 6px; bottom: 6px;
+      border-radius: 6px;
+      display: flex; align-items: center;
+      padding: 0 10px;
+      cursor: pointer; z-index: 1;
+      transition: filter .13s, transform .13s, box-shadow .13s;
+      overflow: hidden;
+    }
+    .g-bar:hover {
+      filter: brightness(1.09);
+      transform: scaleY(1.13);
+      box-shadow: 0 4px 14px rgba(0,0,0,.16);
+      z-index: 5;
+    }
+    .g-bar.booked     { background: var(--purple); }
+    .g-bar.not-booked { background: var(--rose); }
+    .g-bar.partial    { background: var(--amber); }
+
+    .bar-txt {
+      font-size: 9px;
+      color: rgba(255,255,255,.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: .05em;
+      pointer-events: none;
+    }
+    .g-bar.not-booked .bar-txt { color: rgba(255,244,236,.85); }
+    .g-bar.partial    .bar-txt { color: rgba(44,26,26,.75); }
+
+    .g-dot {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      cursor: pointer; z-index: 2;
+      box-shadow: 0 2px 7px rgba(0,0,0,.15);
+      transition: transform .13s, box-shadow .13s;
+    }
+    .g-dot:hover {
+      transform: translateY(-50%) scale(1.2);
+      box-shadow: 0 4px 14px rgba(0,0,0,.22);
+      z-index: 6;
+    }
+    .g-dot.booked     { background: var(--purple); }
+    .g-dot.not-booked { background: var(--rose); }
+    .g-dot.partial    { background: var(--amber); }
+
+    /* ─── TOOLTIP ────────────────────────────────────── */
+    #tt {
+      position: fixed; z-index: 9000;
+      pointer-events: none;
+      opacity: 0; transition: opacity .13s;
+      max-width: 280px;
+    }
+    #tt.show { opacity: 1; }
+    .tt-inner {
+      background: var(--dark); color: var(--cream);
+      border-radius: 9px; padding: 13px 17px;
+      box-shadow: 0 10px 28px rgba(44,26,26,.28);
+    }
+    .tt-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-weight: 600; color: #fff;
+      margin-bottom: 6px;
+    }
+    .tt-body { font-size: 11px; line-height: 1.75; color: rgba(255,244,236,.8); }
+    .tt-tag {
+      display: inline-block;
+      margin-top: 7px;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .tt-tag.booked     { background: var(--purple); color: #fff; }
+    .tt-tag.not-booked { background: var(--rose);   color: #fff; }
+    .tt-tag.partial    { background: var(--amber);  color: var(--dark); }
+
+    /* ─── ACTIVITIES TABLE ───────────────────────────── */
+    .activities-section {
+      padding: 36px 48px 32px;
+      border-top: 1px solid var(--linen);
+    }
+    .activities-header {
+      display: flex; align-items: baseline;
+      gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .activities-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px; font-weight: 400;
+    }
+    .activities-city-tag {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px; font-style: italic;
+      color: var(--purple);
+    }
+    .activities-count {
+      font-size: 9px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--subtle);
+      margin-left: auto;
+    }
+    .activities-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .activities-table thead th {
+      font-size: 8px; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--subtle);
+      padding: 0 14px 10px; text-align: left;
+      border-bottom: 1px solid var(--linen); font-weight: 500;
+    }
+    .activities-table thead th:first-child { padding-left: 0; }
+    .activities-table tbody tr {
+      border-bottom: 1px solid rgba(231,207,188,.45);
+      transition: background .12s;
+    }
+    .activities-table tbody tr:last-child { border-bottom: none; }
+    .activities-table tbody tr:hover { background: rgba(150,107,157,.04); }
+    .activities-table td { padding: 12px 14px; vertical-align: top; line-height: 1.6; }
+    .activities-table td:first-child { padding-left: 0; }
+    .act-date { white-space: nowrap; color: var(--subtle); font-size: 10px; width: 80px; }
+    .act-name a { color: var(--purple); text-decoration: none; font-weight: 500; }
+    .act-name a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .act-name span { color: var(--dark); font-weight: 500; }
+    .act-desc { color: var(--mid); font-size: 11px; }
+    .activities-empty {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-style: italic;
+      color: var(--subtle); padding: 8px 0;
+    }
+
+    /* ─── MAP ────────────────────────────────────────── */
+    .map-section {
+      padding: 36px 48px 64px;
+      border-top: 1px solid var(--linen);
+    }
+    .city-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--linen);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .city-tabs::-webkit-scrollbar { display: none; }
+    .city-tab {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px; font-style: italic;
+      padding: 10px 22px;
+      border: none; background: transparent;
+      color: var(--mid);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer; transition: all .18s;
+      white-space: nowrap; letter-spacing: .03em;
+    }
+    .city-tab:hover  { color: var(--dark); }
+    .city-tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+    .map-wrap {
+      height: 460px;
+      border: 1px solid var(--linen);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+    }
+    .kml-status {
+      font-size: 9px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--subtle);
+      padding: 6px 0 0;
+      min-height: 20px;
+    }
+
+    /* Leaflet */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px !important;
+      font-family: 'DM Mono', monospace !important;
+      font-size: 12px !important;
+      box-shadow: 0 8px 24px rgba(44,26,26,.2) !important;
+    }
+    .leaflet-popup-tip-container { display: none !important; }
+
+    /* ─── RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 620px) {
+      .header              { padding: 36px 20px 28px; }
+      .legend              { padding: 12px 20px; }
+      .section             { padding: 28px 20px; }
+      .activities-section  { padding: 24px 20px; }
+      .map-section         { padding: 24px 20px 40px; }
+      .g-lbl, .g-row-label { width: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════ HEADER ════════════ -->
+<header class="header">
+  <div class="gradient-bar"></div>
+  <div class="header-watermark">EUROPE</div>
+  <div class="header-inner">
+    <div class="header-cities">Paris · Lille · Antwerp · Amsterdam · London/Maastricht · Munich</div>
+  </div>
+</header>
+
+<!-- ════════════ GANTT ════════════ -->
+<div class="section">
+  <div class="loading" id="gantt-loading">
+    <div class="ldot"></div><div class="ldot"></div><div class="ldot"></div>
+    <span>Loading schedule</span>
+  </div>
+  <div id="gantt-content" style="display:none">
+    <div class="gantt-scroll">
+      <div class="gantt-inner" id="gantt-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ LEGEND ════════════ -->
+<div class="legend">
+  <span class="legend-heading">Status</span>
+  <div class="legend-item"><div class="legend-pip" style="background:var(--purple)"></div>Booked</div>
+  <div class="legend-item"><div class="legend-pip" style="background:var(--rose)"></div>Not Booked</div>
+  <div class="legend-item"><div class="legend-pip" style="background:var(--amber)"></div>Partial</div>
+  <div class="legend-item" style="margin-left:16px;border-left:1px solid var(--linen);padding-left:20px">
+    <div class="kml-pip"></div>My Maps pin
+  </div>
+  <div class="live-badge" id="live-badge"><div class="live-dot"></div>Live · Google Sheets</div>
+</div>
+
+<!-- ════════════ ACTIVITIES TABLE ════════════ -->
+<div class="activities-section">
+  <div class="loading" id="act-loading" style="padding:24px 0">
+    <div class="ldot"></div><div class="ldot"></div><div class="ldot"></div>
+    <span>Loading activities</span>
+  </div>
+  <div id="act-content" style="display:none"></div>
+</div>
+
+<!-- ════════════ MAP ════════════ -->
+<div class="map-section">
+  <div class="section-head">
+    <div class="section-eyebrow">Explorer</div>
+    <div class="section-title">City Guide</div>
+  </div>
+  <div class="city-tabs" id="city-tabs"></div>
+  <div class="map-wrap" id="map"></div>
+  <div class="kml-status" id="kml-status"></div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tt">
+  <div class="tt-inner">
+    <div class="tt-title" id="tt-title"></div>
+    <div class="tt-body"  id="tt-body"></div>
+  </div>
+</div>
+
+<!-- ════════════ SCRIPTS ════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- JSZip — needed to unpack KMZ (Google Maps KML links deliver a ZIP) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════ */
+
+// ── Google Sheets CSV export URLs ─────────────────────────────────────────
+// CSV exports set Access-Control-Allow-Origin: * so they work from file://
+// To find your Activities sheet GID: open Google Sheet, check URL for ?gid=XXXXXXX
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS1HaW2m85QExbc9yOKDwI8p7aB8kMLfHBcGgBJA8fYjUyF2ysYVjcuxNfKegro4IbRl_kUY27O_nXR/pub';
+const SHEET1_CSV = SHEET_BASE + '?output=csv&gid=0';   // Travel/schedule (gid 0 = first sheet)
+const SHEET2_CSV = SHEET_BASE + '?output=csv&gid=';    // ← paste your Activities sheet GID after the =
+
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['SU','M','TU','W','TH','F','SA'];
+
+const START = new Date(2026, 8, 30); // Sep 30
+const DATES = Array.from({ length: 23 }, (_, i) => {
+  const d = new Date(START); d.setDate(d.getDate() + i); return d;
+});
+
+const CITIES = [
+  { name: 'Paris',     country: 'France',      lat: 48.8566,  lng:  2.3522 },
+  { name: 'Lille',     country: 'France',      lat: 50.6292,  lng:  3.0573 },
+  { name: 'Antwerp',   country: 'Belgium',     lat: 51.2194,  lng:  4.4025 },
+  { name: 'Amsterdam', country: 'Netherlands', lat: 52.3676,  lng:  4.9041 },
+  { name: 'London',    country: 'UK',          lat: 51.5234,  lng: -0.1226 },
+  { name: 'Munich',    country: 'Germany',     lat: 48.1351,  lng: 11.5820 },
+];
+
+const BOOKING = {
+  Paris:     'https://www.booking.com/hotel/fr/appartement-quartier-le-marais-free-netflix.en-gb.html',
+  Lille:     'https://www.booking.com/hotel/fr/hotel-balladins-superior-lille-centre.en-gb.html',
+  Amsterdam: 'https://www.booking.com/hotel/nl/frisco-inn.en-gb.html',
+  London:    'https://www.booking.com/hotel/gb/1-bedroom-flat-in-kings-cross-londres.en-gb.html',
+};
+
+const ADDRESSES = {
+  Paris:     '46 Rue Saint-Antoine, 75004',
+  Lille:     '24 Place De La Gare, 59800',
+  Amsterdam: 'Beursstraat 5, 1012 JT',
+  London:    '3-7 Flat D Chalton Street, NW1 1JD',
+};
+
+// Google My Maps — these serve KMZ (ZIP containing doc.kml)
+const KML_BASE = 'https://www.google.com/maps/d/kml?mid=1xzFyviekBHTKoUm95_mFj8zTRElNHLg&lid=';
+const KML_LID = {
+  Paris:     'p_zS62hDC1E',
+  Lille:     'x-FaRJ9nfEs',
+  Amsterdam: 'M1AZlgpJUVA',
+  Antwerp:   '6s64uW70W4Q',
+  Munich:    '4TcmWYSmhME',
+  London:    'SnyE5WAXrps',
+};
+
+// CORS proxies tried in order for KMZ fetching
+const PROXIES = [
+  url => url,                                                // direct
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+/* ══════════════════════════════════════════════════
+   FALLBACK TRAVEL DATA
+══════════════════════════════════════════════════ */
+
+const FALLBACK = [
+  { stay:'',          aStatus:'',           aAddr:'',                               aUrl:'',               travel:'Flight', tStatus:'Booked',     tDetail:'Brisbane → Munich' },
+  { stay:'Paris',     aStatus:'Booked',     aAddr:'46 Rue Saint-Antoine, 75004',    aUrl:BOOKING.Paris,    travel:'Flight', tStatus:'Booked',     tDetail:'Munich → Paris' },
+  { stay:'Paris',     aStatus:'Booked',     aAddr:'46 Rue Saint-Antoine, 75004',    aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Paris',     aStatus:'Booked',     aAddr:'46 Rue Saint-Antoine, 75004',    aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Paris',     aStatus:'Booked',     aAddr:'46 Rue Saint-Antoine, 75004',    aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Lille',     aStatus:'Booked',     aAddr:'24 Place De La Gare, 59800',     aUrl:BOOKING.Lille,    travel:'Train',  tStatus:'Not Booked', tDetail:'Paris → Lille' },
+  { stay:'Lille',     aStatus:'Booked',     aAddr:'24 Place De La Gare, 59800',     aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Lille',     aStatus:'Booked',     aAddr:'24 Place De La Gare, 59800',     aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Antwerp',   aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'Train',  tStatus:'Not Booked', tDetail:'Lille → Antwerp' },
+  { stay:'Antwerp',   aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Antwerp',   aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Amsterdam', aStatus:'Booked',     aAddr:'Beursstraat 5, 1012 JT',         aUrl:BOOKING.Amsterdam,travel:'Train',  tStatus:'Booked',     tDetail:'Antwerp → Amsterdam' },
+  { stay:'Amsterdam', aStatus:'Booked',     aAddr:'Beursstraat 5, 1012 JT',         aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Amsterdam', aStatus:'Booked',     aAddr:'Beursstraat 5, 1012 JT',         aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'London',    aStatus:'Booked',     aAddr:'3-7 Flat D Chalton St, NW1 1JD', aUrl:BOOKING.London,   travel:'Train',  tStatus:'Partial',    tDetail:'Eurostar 9133 · 10:40→13:57 · Seats 21,22 Coach 5' },
+  { stay:'London',    aStatus:'Booked',     aAddr:'3-7 Flat D Chalton St, NW1 1JD', aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'London',    aStatus:'Booked',     aAddr:'3-7 Flat D Chalton St, NW1 1JD', aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Munich',    aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'Flight', tStatus:'Not Booked', tDetail:'BA936 · LHR T5 15:10 → MUC T1 18:10' },
+  { stay:'Munich',    aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Munich',    aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Munich',    aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'' },
+  { stay:'Munich',    aStatus:'Not Booked', aAddr:'',                               aUrl:'',               travel:'Flight', tStatus:'Booked',     tDetail:'Munich → Brisbane' },
+  { stay:'',          aStatus:'',           aAddr:'',                               aUrl:'',               travel:'',       tStatus:'',           tDetail:'Arrive Brisbane' },
+];
+
+/* ══════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════ */
+
+function normStatus(s) {
+  const v = (s||'').toLowerCase().trim();
+  if (v === 'booked') return 'booked';
+  if (v.includes('not')) return 'not-booked';
+  if (v.includes('partial')) return 'partial';
+  return '';
+}
+
+function normCity(s) {
+  const v = (s||'').toLowerCase().trim();
+  if (v.includes('paris'))     return 'Paris';
+  if (v.includes('lille'))     return 'Lille';
+  if (v.includes('antwerp'))   return 'Antwerp';
+  if (v.includes('amsterdam')) return 'Amsterdam';
+  if (v.includes('london') || v.includes('maastricht')) return 'London';
+  if (v.includes('munich') || v.includes('münchen'))    return 'Munich';
+  return '';
+}
+
+function tIcon(type) {
+  const t = (type||'').toLowerCase();
+  if (t === 'flight') return '✈';
+  if (t === 'train')  return '🚄';
+  return '→';
+}
+
+function pickUrl(text) {
+  const m = (text||'').match(/https?:\/\/[^\s"'\]]+/);
+  return m ? m[0] : '';
+}
+
+/* ══════════════════════════════════════════════════
+   TOOLTIP
+══════════════════════════════════════════════════ */
+
+const tt      = document.getElementById('tt');
+const ttTitle = document.getElementById('tt-title');
+const ttBody  = document.getElementById('tt-body');
+let ttOn = false;
+
+function showTt(e, title, html) {
+  ttTitle.textContent = title;
+  ttBody.innerHTML    = html;
+  tt.classList.add('show');
+  ttOn = true;
+  placeTt(e);
+}
+
+function hideTt() { tt.classList.remove('show'); ttOn = false; }
+
+function placeTt(e) {
+  const m = 12, r = tt.getBoundingClientRect();
+  let x = e.clientX + 16, y = e.clientY - 14;
+  if (x + r.width  > window.innerWidth  - m) x = e.clientX - r.width  - 12;
+  if (y + r.height > window.innerHeight - m) y = window.innerHeight - r.height - m;
+  tt.style.left = Math.max(m, x) + 'px';
+  tt.style.top  = Math.max(m, y) + 'px';
+}
+
+document.addEventListener('mousemove', e => { if (ttOn) placeTt(e); });
+document.addEventListener('click', e => { if (!e.target.closest('.g-bar,.g-dot')) hideTt(); });
+
+/* ══════════════════════════════════════════════════
+   BUILD GANTT
+══════════════════════════════════════════════════ */
+
+function buildGantt(rows) {
+  document.getElementById('gantt-loading').style.display = 'none';
+  document.getElementById('gantt-content').style.display = 'block';
+  const root = document.getElementById('gantt-inner');
+  root.innerHTML = '';
+
+  const wknd = DATES.map(d => d.getDay() === 0 || d.getDay() === 6);
+
+  // Date header
+  const hdr = document.createElement('div');
+  hdr.className = 'g-header';
+  hdr.appendChild(Object.assign(document.createElement('div'), { className: 'g-lbl' }));
+
+  const dRow = document.createElement('div');
+  dRow.className = 'g-dates';
+  DATES.forEach((d, i) => {
+    const col = document.createElement('div');
+    col.className = 'g-date' + (wknd[i] ? ' wknd' : '');
+    col.innerHTML = `<span class="g-date-n">${d.getDate()}</span><span class="g-date-dow">${DOW[d.getDay()]}</span><span class="g-date-m">${MON[d.getMonth()]}</span>`;
+    dRow.appendChild(col);
+  });
+  hdr.appendChild(dRow);
+  root.appendChild(hdr);
+
+  // City rows
+  const cityGroup = document.createElement('div');
+  cityGroup.className = 'g-group';
+
+  CITIES.forEach(city => {
+    const row = document.createElement('div');
+    row.className = 'g-row';
+    const rl = document.createElement('div');
+    rl.className = 'g-row-label';
+    rl.innerHTML = `<div class="g-city-name">${city.name}</div><div class="g-city-sub">${city.country}</div>`;
+    row.appendChild(rl);
+
+    const cells = document.createElement('div');
+    cells.className = 'g-cells';
+    cells.appendChild(makeBg(wknd));
+
+    // Contiguous stay segments
+    const segs = [];
+    let s0 = -1, sRow = null;
+    rows.forEach((r, i) => {
+      if (normCity(r.stay) === city.name) {
+        if (s0 === -1) { s0 = i; sRow = r; }
+      } else {
+        if (s0 !== -1) { segs.push({ start: s0, end: i - 1, data: sRow }); s0 = -1; }
+      }
+    });
+    if (s0 !== -1) segs.push({ start: s0, end: rows.length - 1, data: sRow });
+
+    segs.forEach(seg => {
+      const pctL = (seg.start / 23) * 100;
+      const pctW = ((seg.end - seg.start + 1) / 23) * 100;
+      const d    = seg.data;
+      const st   = normStatus(d.aStatus);
+      const addr = d.aAddr || ADDRESSES[city.name] || '';
+      const url  = pickUrl(d.aUrl) || BOOKING[city.name] || '';
+
+      const bar = document.createElement('div');
+      bar.className = `g-bar ${st || 'not-booked'}`;
+      bar.style.left  = pctL + '%';
+      bar.style.width = pctW + '%';
+
+      if (addr) {
+        const t = document.createElement('span');
+        t.className = 'bar-txt';
+        t.textContent = addr;
+        bar.appendChild(t);
+      }
+
+      if (url) bar.addEventListener('click', e => { e.stopPropagation(); window.open(url, '_blank'); });
+
+      const statusLabel = (d.aStatus || '—').trim();
+      const ttHtml = [
+        addr ? `📍 ${addr}` : '',
+        url  ? `<a href="${url}" target="_blank" style="color:var(--amber);text-decoration:none">View Booking →</a>` : '',
+        `<span class="tt-tag ${st || 'not-booked'}">${statusLabel}</span>`,
+      ].filter(Boolean).join('<br>');
+
+      bar.addEventListener('mouseenter', e => showTt(e, city.name, ttHtml));
+      bar.addEventListener('mouseleave', hideTt);
+      cells.appendChild(bar);
+    });
+
+    row.appendChild(cells);
+    cityGroup.appendChild(row);
+  });
+  root.appendChild(cityGroup);
+
+  // Transit row
+  const tGroup = document.createElement('div');
+  tGroup.className = 'g-group';
+  const tRow = document.createElement('div');
+  tRow.className = 'g-row';
+  const tLbl = document.createElement('div');
+  tLbl.className = 'g-row-label';
+  tLbl.innerHTML = '<div class="g-transit-label">Transit</div>';
+  tRow.appendChild(tLbl);
+  const tCells = document.createElement('div');
+  tCells.className = 'g-cells';
+  tCells.appendChild(makeBg(wknd));
+
+  rows.forEach((r, i) => {
+    if (!r.travel) return;
+    const st = normStatus(r.tStatus);
+    if (!st) return;
+    const pct = ((i + 0.5) / 23) * 100;
+    const dot = document.createElement('div');
+    dot.className = `g-dot ${st}`;
+    dot.style.left = `calc(${pct}% - 15px)`;
+    dot.textContent = tIcon(r.travel);
+    const ttHtml = [
+      r.travel  ? `${tIcon(r.travel)} ${r.travel}` : '',
+      r.tDetail ? `Route: ${r.tDetail}` : '',
+      st ? `<span class="tt-tag ${st}">${(r.tStatus||'').trim()}</span>` : '',
+    ].filter(Boolean).join('<br>');
+    dot.addEventListener('mouseenter', e => showTt(e, r.travel || 'Transit', ttHtml));
+    dot.addEventListener('mouseleave', hideTt);
+    tCells.appendChild(dot);
+  });
+
+  tRow.appendChild(tCells);
+  tGroup.appendChild(tRow);
+  root.appendChild(tGroup);
+}
+
+function makeBg(wknd) {
+  const bg = document.createElement('div');
+  bg.className = 'g-bg';
+  DATES.forEach((_, i) => {
+    const c = document.createElement('div');
+    c.className = 'g-bg-cell' + (wknd[i] ? ' wknd' : '');
+    bg.appendChild(c);
+  });
+  return bg;
+}
+
+/* ══════════════════════════════════════════════════
+   ACTIVITIES TABLE
+══════════════════════════════════════════════════ */
+
+let allActivities = {};
+
+function buildActivitiesTable(cityName) {
+  const el    = document.getElementById('act-content');
+  const items = allActivities[cityName] || [];
+
+  const hdr = `
+    <div class="activities-header">
+      <span class="activities-title">Ideas &amp; Activities</span>
+      <span class="activities-city-tag">${cityName}</span>
+      <span class="activities-count">${items.length} idea${items.length !== 1 ? 's' : ''}</span>
+    </div>
+  `;
+
+  if (!items.length) {
+    el.innerHTML = hdr + `<div class="activities-empty">No ideas added for ${cityName} yet.</div>`;
+    return;
+  }
+
+  const rows = items.map(item => {
+    const nameCell = item.url
+      ? `<a href="${item.url}" target="_blank">${item.name}</a>`
+      : `<span>${item.name}</span>`;
+    return `<tr>
+      <td class="act-date">${item.date || ''}</td>
+      <td class="act-name">${nameCell}</td>
+      <td class="act-desc">${item.description || ''}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = hdr + `
+    <table class="activities-table">
+      <thead><tr><th>Date</th><th>Idea / Activity</th><th>Notes</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/* ══════════════════════════════════════════════════
+   FETCH & PARSE GOOGLE SHEETS (pubhtml → HTML table)
+══════════════════════════════════════════════════ */
+
+async function loadData() {
+  let travelRows = null;
+  let actRaw     = null;
+
+  // CSV fetch helper — tries direct then a null-origin-friendly proxy
+  async function fetchCSV(csvUrl) {
+    // Proxies ordered by null-origin compatibility
+    const attempts = [
+      csvUrl,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`,
+      `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`,
+    ];
+    for (const u of attempts) {
+      try {
+        console.log('[Sheet] Trying:', u.slice(0, 70) + '…');
+        const r = await fetch(u, { mode: 'cors' });
+        if (!r.ok) { console.warn('[Sheet] HTTP', r.status); continue; }
+        const text = await r.text();
+        if (text.includes(',') || text.includes('\n')) {
+          console.log('[Sheet] ✓ CSV fetched from', u.slice(0, 50));
+          return text;
+        }
+      } catch (e) {
+        console.warn('[Sheet] Fetch error:', e.message);
+      }
+    }
+    return null;
+  }
+
+  // Sheet 1 — Travel/schedule
+  const csv1 = await fetchCSV(SHEET1_CSV);
+  if (csv1) {
+    travelRows = parseCSVSheet(csv1, 'travel');
+    if (travelRows && travelRows.length >= 10) {
+      document.getElementById('live-badge').style.display = 'inline-flex';
+    } else {
+      travelRows = null;
+    }
+  }
+
+  // Sheet 2 — Activities (only if GID is set)
+  if (SHEET2_CSV.endsWith('gid=')) {
+    console.info('[Sheet] Activities GID not set — skipping sheet 2. Add your GID to SHEET2_CSV in the config.');
+  } else {
+    const csv2 = await fetchCSV(SHEET2_CSV);
+    if (csv2) actRaw = parseCSVSheet(csv2, 'activities');
+  }
+
+  if (!travelRows) console.warn('[Sheet] All sources failed — using hardcoded fallback data');
+
+  buildGantt(travelRows && travelRows.length >= 10 ? travelRows : FALLBACK);
+  if (actRaw) buildActivitiesFromRows(actRaw);
+
+  document.getElementById('act-loading').style.display = 'none';
+  document.getElementById('act-content').style.display = 'block';
+  buildActivitiesTable(CITIES[0].name);
+}
+
+// Minimal but correct CSV parser (handles quoted fields with commas/newlines)
+function parseCSVRows(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === ',') {
+      row.push(cell.trim()); cell = '';
+    } else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+      if (c === '\r') i++;
+      row.push(cell.trim()); cell = '';
+      if (row.some(v => v !== '')) rows.push(row);
+      row = [];
+    } else {
+      cell += c;
+    }
+  }
+  if (cell || row.length) { row.push(cell.trim()); if (row.some(v => v)) rows.push(row); }
+  return rows;
+}
+
+function parseCSVSheet(csvText, mode) {
+  const rawRows = parseCSVRows(csvText);
+  if (rawRows.length < 2) return null;
+
+  // Find header row
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(rawRows.length, 5); i++) {
+    const joined = rawRows[i].join('|').toLowerCase();
+    if (joined.includes('date') || joined.includes('stay') || joined.includes('city') || joined.includes('name')) {
+      headerIdx = i; break;
+    }
+  }
+  const headers = rawRows[headerIdx].map(h => h.toLowerCase().trim());
+  const ci = {};
+  headers.forEach((h, i) => { ci[h] = i; });
+  const dataRows = rawRows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
+
+  if (mode === 'travel') return parseTravelRows(dataRows, ci);
+  return dataRows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+    return obj;
+  });
+}
+
+/**
+ * Turn an HTML <table> element into an array of row objects.
+ * mode = 'travel' → maps to FALLBACK shape
+ * mode = 'activities' → raw {header: value} objects
+ */
+function parseHtmlTable(table, mode) {
+  // Extract all rows → array of arrays of cell text
+  const rawRows = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = [...tr.querySelectorAll('th, td')].map(td => td.textContent.trim());
+    rawRows.push(cells);
+  });
+
+  if (rawRows.length < 2) return null;
+
+  // Find the header row — first row with recognisable column names
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(rawRows.length, 5); i++) {
+    const joined = rawRows[i].join('|').toLowerCase();
+    if (joined.includes('date') || joined.includes('stay') || joined.includes('city') || joined.includes('name')) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  const headers = rawRows[headerIdx].map(h => h.toLowerCase().trim());
+  const ci = {};
+  headers.forEach((h, i) => { ci[h] = i; });
+
+  const dataRows = rawRows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
+
+  if (mode === 'travel') {
+    return parseTravelRows(dataRows, ci);
+  } else {
+    return dataRows.map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+      return obj;
+    });
+  }
+}
+
+function parseTravelRows(dataRows, ci) {
+  function g(row, ...keys) {
+    for (const k of keys) {
+      const idx = ci[k];
+      if (idx !== undefined && row[idx]) return row[idx].trim();
+    }
+    return '';
+  }
+
+  // Build date→row map (normalise "30 Sep", "1 Oct" etc.)
+  const byDate = {};
+  dataRows.forEach(row => {
+    const dateVal = g(row, 'date').toLowerCase();
+    if (dateVal) byDate[dateVal] = row;
+  });
+
+  return DATES.map((d, i) => {
+    const key = `${d.getDate()} ${MON[d.getMonth()]}`.toLowerCase();
+    // Try variations
+    const alt1 = `${d.getDate()} ${MON[d.getMonth()].toLowerCase()}`;
+    const found = byDate[key] || byDate[alt1];
+    if (!found) return FALLBACK[i] || {};
+
+    return {
+      stay:    normCity(g(found, 'stay')),
+      aStatus: g(found, 'accom status', 'accommodation status', 'accomodation status'),
+      aAddr:   g(found, 'accom address', 'accommodation address', 'address'),
+      aUrl:    g(found, 'accom details', 'accommodation details', 'accom url', 'booking url', 'booking link'),
+      travel:  g(found, 'travel'),
+      tStatus: g(found, 'travel status'),
+      tDetail: g(found, 'travel details'),
+    };
+  });
+}
+
+function buildActivitiesFromRows(rows) {
+  rows.forEach(row => {
+    const city = normCity(row['city'] || row['location'] || row['destination'] || '');
+    if (!city) return;
+    const name = (row['name'] || row['idea name'] || row['idea'] || row['activity'] || row['title'] || '').trim();
+    if (!name) return;
+
+    const urlVal = (row['url'] || row['link'] || row['website'] || '').trim();
+    const entry = {
+      date:        row['date'] || '',
+      name,
+      url:         urlVal,
+      description: (row['description'] || row['notes'] || row['note'] || row['details'] || '').trim(),
+    };
+
+    if (!allActivities[city]) allActivities[city] = [];
+    allActivities[city].push(entry);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   MAP + KMZ LOADING
+══════════════════════════════════════════════════ */
+
+let map, markers = [], currentCity = null;
+const geocodeCache = {};
+
+function pinHTML(color, size = 14) {
+  const b = Math.round(size / 5);
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${b}px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.26)"></div>`;
+}
+
+function initMap() {
+  const tabsEl = document.getElementById('city-tabs');
+  CITIES.forEach((city, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'city-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = city.name;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.city-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      switchCity(city.name);
+    });
+    tabsEl.appendChild(btn);
+  });
+
+  map = L.map('map', {
+    center: [CITIES[0].lat, CITIES[0].lng],
+    zoom: 14,
+    scrollWheelZoom: false,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors © <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  switchCity(CITIES[0].name);
+}
+
+function switchCity(cityName) {
+  currentCity = cityName;
+  buildActivitiesTable(cityName);
+
+  const city = CITIES.find(c => c.name === cityName);
+  map.flyTo([city.lat, city.lng], 14, { duration: 1.3 });
+
+  // Clear markers
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  setKmlStatus('');
+
+  // Accom pin (geocoded to actual address)
+  placeAccomPin(cityName);
+
+  // Load My Maps KMZ pins
+  loadKmz(cityName);
+}
+
+async function placeAccomPin(cityName) {
+  const city    = CITIES.find(c => c.name === cityName);
+  const addr    = ADDRESSES[cityName];
+  const bookUrl = BOOKING[cityName];
+  const color   = addr ? '#966b9d' : '#c98686';
+
+  let pos = [city.lat, city.lng];
+  if (addr) {
+    const geo = await geocode(addr + ', ' + city.country);
+    if (geo) pos = geo;
+  }
+
+  const icon = L.divIcon({ html: pinHTML(color, 16), iconSize:[16,16], className:'', iconAnchor:[8,8] });
+  const popup = addr
+    ? `<strong>${cityName}</strong><br><span style="color:#7c5c5c;font-size:11px">${addr}</span>${bookUrl ? `<br><a href="${bookUrl}" target="_blank" style="color:#966b9d;font-size:11px;font-weight:500;text-decoration:none">View Booking →</a>` : ''}`
+    : `<strong>${cityName}</strong><br><em style="color:#c98686;font-size:11px">Accommodation not yet booked</em>`;
+
+  const m = L.marker(pos, { icon }).addTo(map).bindPopup(popup, { maxWidth: 240 });
+  markers.push(m);
+}
+
+async function geocode(address) {
+  if (geocodeCache[address]) return geocodeCache[address];
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+      headers: { 'Accept-Language': 'en' }
+    });
+    const j = await r.json();
+    if (j && j[0]) {
+      const pos = [parseFloat(j[0].lat), parseFloat(j[0].lon)];
+      geocodeCache[address] = pos;
+      return pos;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Fetch KMZ (ZIP file) from Google My Maps, unpack with JSZip,
+ * parse the doc.kml inside, add placemarks to the map.
+ */
+async function loadKmz(cityName) {
+  const lid = KML_LID[cityName];
+  if (!lid) return;
+
+  const kmlUrl = KML_BASE + lid;
+  setKmlStatus('Loading My Maps pins…');
+
+  let kmlText = null;
+
+  for (const makeUrl of PROXIES) {
+    const u = makeUrl(kmlUrl);
+    try {
+      const r = await fetch(u, { mode: 'cors' });
+      if (!r.ok) continue;
+      const buf = await r.arrayBuffer();
+
+      // ── Try unpacking as KMZ (ZIP) using JSZip ──
+      try {
+        const zip = await JSZip.loadAsync(buf);
+        const kmlName = Object.keys(zip.files).find(f => f.toLowerCase().endsWith('.kml'));
+        if (kmlName) {
+          kmlText = await zip.files[kmlName].async('text');
+          console.log(`[KMZ] Unpacked ${kmlName} from ${u}`);
+          break;
+        }
+      } catch (zipErr) {
+        // Not a zip — try reading as plain KML text
+      }
+
+      // ── Try as plain KML text ──
+      const text = new TextDecoder().decode(buf);
+      if (text.includes('<kml') || text.includes('<Placemark')) {
+        kmlText = text;
+        console.log(`[KML] Plain KML from ${u}`);
+        break;
+      }
+
+    } catch (fetchErr) {
+      console.warn(`[KMZ] Fetch failed for ${u}:`, fetchErr.message);
+    }
+  }
+
+  // Only update map if we're still on the same city (race condition guard)
+  if (currentCity !== cityName) return;
+
+  if (!kmlText) {
+    setKmlStatus('My Maps pins unavailable (CORS)');
+    return;
+  }
+
+  const count = placeKmlMarkers(kmlText);
+  setKmlStatus(count > 0 ? `${count} My Maps pin${count !== 1 ? 's' : ''} loaded` : '');
+}
+
+function placeKmlMarkers(kmlText) {
+  let count = 0;
+  try {
+    const dom = new DOMParser().parseFromString(kmlText, 'application/xml');
+    const pms = dom.querySelectorAll('Placemark');
+
+    pms.forEach(pm => {
+      const name    = pm.querySelector('name')?.textContent?.trim() || '';
+      const descRaw = pm.querySelector('description')?.textContent?.trim() || '';
+      const coord   = pm.querySelector('coordinates')?.textContent?.trim() || '';
+      if (!coord) return;
+
+      const [lngStr, latStr] = coord.split(',');
+      const lng = parseFloat(lngStr), lat = parseFloat(latStr);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      // ── Parse description ──────────────────────────────────────
+      // Google My Maps descriptions are HTML fragments, often containing
+      // a <table> of key/value pairs (e.g. address, hours, phone, website).
+      let descHtml = '';
+      if (descRaw) {
+        const descDoc = new DOMParser().parseFromString(descRaw, 'text/html');
+
+        // 1. Check for structured table rows (My Maps custom fields)
+        const rows = [...descDoc.querySelectorAll('tr')];
+        if (rows.length > 0) {
+          const parts = [];
+          rows.forEach(tr => {
+            const cells = [...tr.querySelectorAll('td,th')]
+              .map(c => c.textContent.trim()).filter(Boolean);
+            if (cells.length >= 2) {
+              parts.push(`<span style="color:#b89090">${cells[0]}:</span> ${cells[1]}`);
+            } else if (cells.length === 1 && cells[0]) {
+              parts.push(cells[0]);
+            }
+          });
+          if (parts.length) descHtml = parts.slice(0, 5).join('<br>');
+        }
+
+        // 2. If no table, grab meaningful paragraph/div text
+        if (!descHtml) {
+          const body = descDoc.body;
+          // Pull any links as clickable
+          const links = [...body.querySelectorAll('a[href]')];
+          const plainText = body.textContent.trim().substring(0, 220);
+          const linkHtml  = links.slice(0,2).map(a =>
+            `<a href="${a.href}" target="_blank" style="color:#966b9d;text-decoration:none">${a.textContent.trim() || a.href}</a>`
+          ).join(' · ');
+          descHtml = [plainText, linkHtml].filter(Boolean).join('<br>');
+        }
+      }
+
+      // ── Google Maps deep-link ──────────────────────────────────
+      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lng},17z`;
+
+      const popup = `
+        <strong style="font-size:12px;display:block;margin-bottom:5px">${name}</strong>
+        ${descHtml ? `<div style="font-size:10px;color:#7c5c5c;line-height:1.55;margin-bottom:6px">${descHtml}</div>` : ''}
+        <a href="${mapsUrl}" target="_blank"
+           style="font-size:10px;color:#966b9d;text-decoration:none;font-weight:500">
+          View on Google Maps →
+        </a>
+      `;
+
+      const icon = L.divIcon({ html: pinHTML('#f2b880', 10), iconSize:[10,10], className:'', iconAnchor:[5,5] });
+      const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(popup, { maxWidth: 270 });
+      markers.push(m);
+      count++;
+    });
+  } catch (e) {
+    console.warn('[KML] Parse error:', e);
+  }
+  return count;
+}
+
+function setKmlStatus(msg) {
+  document.getElementById('kml-status').textContent = msg;
+}
+
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+
+// Show fallback Gantt immediately while data loads
+buildGantt(FALLBACK);
+
+// Load live data async (upgrades Gantt + populates activities)
+loadData();
+
+// Init map
+initMap();
+</script>
+</body>
+</html>
