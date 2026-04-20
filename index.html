@@ -899,10 +899,145 @@ document.addEventListener('mousemove', e => { if (ttOn) placeTt(e); });
 document.addEventListener('click', e => { if (!e.target.closest('.g-bar,.g-dot')) hideTt(); });
 
 /* ══════════════════════════════════════════════════
+   WEATHER
+   • Within 16 days of a trip date → Open-Meteo forecast
+   • Further out → Open-Meteo archive 2024 (climate proxy)
+   • Only shows cities relevant to that day (+ departure
+     city on travel days)
+══════════════════════════════════════════════════ */
+
+// weatherData[cityName] = array of 23 objects { max, min, source }
+// source: 'forecast' | 'climate'
+const weatherData = {};
+
+// cityPerDay[dateIndex] = array of city names to show (1 or 2 on travel days)
+let cityPerDay = new Array(23).fill(null).map(() => []);
+
+// Called by buildGantt so weather tip always reflects latest schedule data
+function updateCityPerDay(rows) {
+  cityPerDay = DATES.map((_, i) => {
+    const r    = rows[i] || {};
+    const stay = normCity(r.stay);
+    const cities = [];
+    // If it's a travel day, also show where they were yesterday
+    if (r.travel && r.tStatus) {
+      const prev = normCity((rows[i - 1] || {}).stay);
+      if (prev && prev !== stay) cities.push(prev);
+    }
+    if (stay) cities.push(stay);
+    return cities;
+  });
+}
+
+async function loadWeather() {
+  const today     = new Date();
+  const fmtDate   = d => d.toISOString().slice(0, 10);
+
+  // Forecast window: today → today + 15 days
+  const forecastEnd = new Date(today);
+  forecastEnd.setDate(forecastEnd.getDate() + 15);
+
+  // Archive proxy: same calendar dates in 2024
+  const archiveStart = '2024-09-30';
+  const archiveEnd   = '2024-10-22';
+
+  await Promise.all(CITIES.map(async city => {
+    const dayData = new Array(23).fill(null);
+
+    // ── 1. Archive (climate proxy) ─────────────────────────────
+    try {
+      const url = `https://archive-api.open-meteo.com/v1/archive` +
+        `?latitude=${city.lat}&longitude=${city.lng}` +
+        `&start_date=${archiveStart}&end_date=${archiveEnd}` +
+        `&daily=temperature_2m_max,temperature_2m_min&timezone=auto&temperature_unit=celsius`;
+      const r = await fetch(url);
+      if (r.ok) {
+        const j = await r.json();
+        const maxArr = j.daily?.temperature_2m_max || [];
+        const minArr = j.daily?.temperature_2m_min || [];
+        maxArr.forEach((mx, i) => {
+          if (i < 23 && mx !== null) {
+            dayData[i] = {
+              max: Math.round(mx),
+              min: minArr[i] !== null ? Math.round(minArr[i]) : null,
+              source: 'climate',
+            };
+          }
+        });
+      }
+    } catch (e) { console.warn('[Weather] Archive failed for', city.name, e.message); }
+
+    // ── 2. Forecast (overlays archive where dates are in range) ─
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast` +
+        `?latitude=${city.lat}&longitude=${city.lng}` +
+        `&daily=temperature_2m_max,temperature_2m_min&timezone=auto&temperature_unit=celsius&forecast_days=16`;
+      const r = await fetch(url);
+      if (r.ok) {
+        const j = await r.json();
+        const fcDates  = j.daily?.time || [];
+        const fcMaxArr = j.daily?.temperature_2m_max || [];
+        const fcMinArr = j.daily?.temperature_2m_min || [];
+
+        // Map forecast dates onto trip date indices
+        DATES.forEach((tripDate, i) => {
+          const tripStr = fmtDate(tripDate);
+          const fcIdx   = fcDates.indexOf(tripStr);
+          if (fcIdx !== -1 && fcMaxArr[fcIdx] !== null) {
+            dayData[i] = {
+              max: Math.round(fcMaxArr[fcIdx]),
+              min: fcMinArr[fcIdx] !== null ? Math.round(fcMinArr[fcIdx]) : null,
+              source: 'forecast',
+            };
+          }
+        });
+      }
+    } catch (e) { console.warn('[Weather] Forecast failed for', city.name, e.message); }
+
+    weatherData[city.name] = dayData;
+  }));
+
+  attachWeatherTooltips();
+}
+
+function attachWeatherTooltips() {
+  document.querySelectorAll('.g-date[data-date-idx]').forEach(col => {
+    // Remove old listeners by cloning
+    const fresh = col.cloneNode(true);
+    col.parentNode.replaceChild(fresh, col);
+
+    const i = parseInt(fresh.getAttribute('data-date-idx'));
+    fresh.addEventListener('mouseenter', e => {
+      const tip = buildWeatherTip(i);
+      if (tip) showTt(e, DATES[i].toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' }), tip);
+    });
+    fresh.addEventListener('mouseleave', hideTt);
+  });
+}
+
+function buildWeatherTip(dateIdx) {
+  const relevantCities = cityPerDay[dateIdx] || [];
+  if (!relevantCities.length) return null;
+
+  const lines = relevantCities.map(cityName => {
+    const d = (weatherData[cityName] || [])[dateIdx];
+    if (!d || d.max === null) return null;
+    const sourceTag = d.source === 'forecast'
+      ? `<span style="color:#5aab5a;font-size:8px;letter-spacing:.06em"> FORECAST</span>`
+      : `<span style="color:rgba(255,244,236,.35);font-size:8px;letter-spacing:.06em"> AVG</span>`;
+    return `<span style="color:rgba(255,244,236,.55);font-size:9px;letter-spacing:.08em;text-transform:uppercase">${cityName}</span>${sourceTag}<br>` +
+           `<span style="color:#f2b880;font-size:13px">↑${d.max}°</span>&ensp;<span style="color:rgba(255,244,236,.65);font-size:13px">↓${d.min}°C</span>`;
+  }).filter(Boolean);
+
+  return lines.length ? lines.join('<br><br>') : null;
+}
+
+/* ══════════════════════════════════════════════════
    BUILD GANTT
 ══════════════════════════════════════════════════ */
 
 function buildGantt(rows) {
+  updateCityPerDay(rows);
   document.getElementById('gantt-loading').style.display = 'none';
   document.getElementById('gantt-content').style.display = 'block';
   const root = document.getElementById('gantt-inner');
@@ -920,6 +1055,8 @@ function buildGantt(rows) {
   DATES.forEach((d, i) => {
     const col = document.createElement('div');
     col.className = 'g-date' + (wknd[i] ? ' wknd' : '');
+    col.setAttribute('data-date-idx', i);
+    col.style.cursor = 'default';
     col.innerHTML = `<span class="g-date-n">${d.getDate()}</span><span class="g-date-dow">${DOW[d.getDay()]}</span><span class="g-date-m">${MON[d.getMonth()]}</span>`;
     dRow.appendChild(col);
   });
@@ -1027,6 +1164,9 @@ function buildGantt(rows) {
   tRow.appendChild(tCells);
   tGroup.appendChild(tRow);
   root.appendChild(tGroup);
+
+  // Re-attach weather tooltips after every Gantt rebuild
+  if (Object.keys(weatherData).length) attachWeatherTooltips();
 }
 
 function makeBg(wknd) {
@@ -1535,8 +1675,6 @@ function placeKmlMarkers(kmlText) {
 
     pms.forEach(pm => {
       const name    = pm.querySelector('name')?.textContent?.trim() || '';
-      // Skip accommodation entries — managed separately via the Gantt
-      if (/accom/i.test(name)) return;
       const descRaw = pm.querySelector('description')?.textContent?.trim() || '';
       const coord   = pm.querySelector('coordinates')?.textContent?.trim() || '';
       if (!coord) return;
@@ -1630,6 +1768,9 @@ loadData();
 
 // Init map
 initMap();
+
+// Load weather data for date tooltips
+loadWeather();
 </script>
 </body>
 </html>
