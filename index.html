@@ -896,7 +896,8 @@ function placeTt(e) {
 }
 
 document.addEventListener('mousemove', e => { if (ttOn) placeTt(e); });
-document.addEventListener('click', e => { if (!e.target.closest('.g-bar,.g-dot')) hideTt(); });
+document.addEventListener('click',      e => { if (!e.target.closest('.g-bar,.g-dot')) hideTt(); });
+document.addEventListener('touchstart', e => { if (ttOn && !e.target.closest('[data-date-idx]')) hideTt(); }, { passive: true });
 
 /* ══════════════════════════════════════════════════
    WEATHER
@@ -1007,11 +1008,25 @@ function attachWeatherTooltips() {
     col.parentNode.replaceChild(fresh, col);
 
     const i = parseInt(fresh.getAttribute('data-date-idx'));
+
+    // Desktop: hover
     fresh.addEventListener('mouseenter', e => {
       const tip = buildWeatherTip(i);
       if (tip) showTt(e, DATES[i].toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' }), tip);
     });
     fresh.addEventListener('mouseleave', hideTt);
+
+    // Mobile: tap
+    fresh.addEventListener('touchend', e => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const tip = buildWeatherTip(i);
+      if (tip) {
+        showTt({ clientX: touch.clientX, clientY: touch.clientY },
+                DATES[i].toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' }),
+                tip);
+      }
+    });
   });
 }
 
