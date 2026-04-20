@@ -579,6 +579,21 @@
       pointer-events: none;
       transition: opacity .4s ease;
     }
+    .edit-link {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      text-decoration: none;
+      border: 1px solid var(--linen);
+      border-radius: 20px;
+      padding: 5px 12px;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .edit-link:hover { color: var(--purple); border-color: var(--purple); }
+
   </style>
 </head>
 <body>
@@ -613,8 +628,8 @@
   const _k = 42;
   // To change the password, update this array.
   // Each value = charCode XOR 42. E.g. "A"(65) → 65^42 = 107
-  // Current password: europe2026
-  const _e = [79,95,88,69,90,79,24,26,24,28];
+  // Current password: 26fiddleleaf
+  const _e = [24,28,76,67,78,78,70,79,70,79,75,76];
 
   function _decode(arr) {
     return arr.map(c => String.fromCharCode(c ^ _k)).join('');
@@ -689,24 +704,28 @@
   <div class="live-badge" id="live-badge"><div class="live-dot"></div>Live · Google Sheets</div>
 </div>
 
-<!-- ════════════ ACTIVITIES TABLE ════════════ -->
+<!-- ════════════ MAP ════════════ -->
+<div class="map-section">
+  <div class="section-head" style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div class="section-eyebrow">Explorer</div>
+      <div class="section-title">City Guide</div>
+    </div>
+    <a href="https://www.google.com/maps/d/edit?mid=1xzFyviekBHTKoUm95_mFj8zTRElNHLg&ll=50.22472144985626%2C5.826644500000006&z=7"
+       target="_blank" class="edit-link">✎ Edit map</a>
+  </div>
+  <div class="city-tabs" id="city-tabs"></div>
+  <div class="map-wrap" id="map"></div>
+  <div class="kml-status" id="kml-status"></div>
+</div>
+
+<!-- ════════════ ACTIVITIES TABLE (below map) ════════════ -->
 <div class="activities-section">
   <div class="loading" id="act-loading" style="padding:24px 0">
     <div class="ldot"></div><div class="ldot"></div><div class="ldot"></div>
     <span>Loading activities</span>
   </div>
   <div id="act-content" style="display:none"></div>
-</div>
-
-<!-- ════════════ MAP ════════════ -->
-<div class="map-section">
-  <div class="section-head">
-    <div class="section-eyebrow">Explorer</div>
-    <div class="section-title">City Guide</div>
-  </div>
-  <div class="city-tabs" id="city-tabs"></div>
-  <div class="map-wrap" id="map"></div>
-  <div class="kml-status" id="kml-status"></div>
 </div>
 
 <!-- TOOLTIP -->
@@ -960,7 +979,6 @@ function buildGantt(rows) {
       const statusLabel = (d.aStatus || '—').trim();
       const ttHtml = [
         addr ? `📍 ${addr}` : '',
-        url  ? `<a href="${url}" target="_blank" style="color:var(--amber);text-decoration:none">View Booking →</a>` : '',
         `<span class="tt-tag ${st || 'not-booked'}">${statusLabel}</span>`,
       ].filter(Boolean).join('<br>');
 
@@ -1037,6 +1055,8 @@ function buildActivitiesTable(cityName) {
       <span class="activities-title">Ideas &amp; Activities</span>
       <span class="activities-city-tag">${cityName}</span>
       <span class="activities-count">${items.length} idea${items.length !== 1 ? 's' : ''}</span>
+      <a href="https://docs.google.com/spreadsheets/d/1-muopQskFlS4oGe7oE03HapgPFRIMGpY9cwvjaf51ws/edit?usp=drive_web&ouid=106862182623760117065"
+         target="_blank" class="edit-link" style="margin-left:0">✎ Edit ideas</a>
     </div>
   `;
 
@@ -1329,9 +1349,6 @@ function switchCity(cityName) {
 
   setKmlStatus('');
 
-  // Accom pin (geocoded to actual address)
-  placeAccomPin(cityName);
-
   // Load My Maps KMZ pins
   loadKmz(cityName);
 }
@@ -1350,7 +1367,7 @@ async function placeAccomPin(cityName) {
 
   const icon = L.divIcon({ html: pinHTML(color, 16), iconSize:[16,16], className:'', iconAnchor:[8,8] });
   const popup = addr
-    ? `<strong>${cityName}</strong><br><span style="color:#7c5c5c;font-size:11px">${addr}</span>${bookUrl ? `<br><a href="${bookUrl}" target="_blank" style="color:#966b9d;font-size:11px;font-weight:500;text-decoration:none">View Booking →</a>` : ''}`
+    ? `<strong>${cityName}</strong><br><span style="color:#7c5c5c;font-size:11px">${addr}</span>`
     : `<strong>${cityName}</strong><br><em style="color:#c98686;font-size:11px">Accommodation not yet booked</em>`;
 
   const m = L.marker(pos, { icon }).addTo(map).bindPopup(popup, { maxWidth: 240 });
@@ -1431,14 +1448,95 @@ async function loadKmz(cityName) {
   setKmlStatus(count > 0 ? `${count} My Maps pin${count !== 1 ? 's' : ''} loaded` : '');
 }
 
+/* ── KML colour helper ──────────────────────────────────────────
+   Google My Maps encodes colour directly in the style ID name,
+   e.g. "icon-1602-FF5252-nodesc-normal" → #FF5252
+   It does NOT use <IconStyle><color> elements.
+────────────────────────────────────────────────────────────── */
+function colorFromStyleId(id) {
+  if (!id) return null;
+  const m = (id || '').match(/[_-]([0-9A-Fa-f]{6})[_-]/);
+  return m ? '#' + m[1].toUpperCase() : null;
+}
+
+/* Legacy: convert KML AABBGGRR hex to CSS (fallback only) */
+function kmlColorToCss(kmlColor) {
+  if (!kmlColor || kmlColor.length < 8) return null;
+  return '#' + kmlColor.slice(6, 8) + kmlColor.slice(4, 6) + kmlColor.slice(2, 4);
+}
+
+/* ── Emoji hint from icon URL ────────────────────────────────── */
+function emojiFromIconHref(href) {
+  if (!href) return '📍';
+  const h = href.toLowerCase();
+  if (/tree|park|garden|nature|leaf/.test(h))          return '🌳';
+  if (/museum|art|gallery|culture/.test(h))             return '🏛️';
+  if (/restaurant|food|dining|eat|fork/.test(h))        return '🍽️';
+  if (/bar|drink|beer|wine|pub/.test(h))                return '🍷';
+  if (/coffee|cafe|café/.test(h))                       return '☕';
+  if (/church|religious|worship/.test(h))               return '⛪';
+  if (/castle|fort|palace|historic/.test(h))            return '🏰';
+  if (/shop|store|market|shopping/.test(h))             return '🛍️';
+  if (/camera|photo|view|lookout/.test(h))              return '📷';
+  if (/beach|water|swim|lake|river/.test(h))            return '🌊';
+  if (/transit|train|bus|metro|tram/.test(h))           return '🚉';
+  if (/hotel|lodging|sleep|accom/.test(h))              return '🏨';
+  if (/sport|stadium|gym|tennis/.test(h))               return '🏟️';
+  if (/star|highlight|featured/.test(h))                return '⭐';
+  return '📍';
+}
+
+/* ── Parse all <Style> and <StyleMap> from a KML document ───── */
+function parseKmlStyles(dom) {
+  const styles = {};
+
+  dom.querySelectorAll('Style').forEach(style => {
+    const id = style.getAttribute('id');
+    if (!id) return;
+    const hrefEl  = style.querySelector('IconStyle Icon href');
+    // Try colour from style ID first (Google My Maps pattern), then <color> element fallback
+    const colorEl = style.querySelector('IconStyle color');
+    const color   = colorFromStyleId(id)
+                 || (colorEl ? kmlColorToCss(colorEl.textContent.trim()) : null);
+    styles[id] = {
+      color: color,
+      href:  hrefEl ? hrefEl.textContent.trim() : '',
+    };
+  });
+
+  // Resolve StyleMaps → point to their 'normal' underlying Style
+  dom.querySelectorAll('StyleMap').forEach(sm => {
+    const id = sm.getAttribute('id');
+    if (!id) return;
+    // Also extract colour from the StyleMap ID itself as a direct fallback
+    const directColor = colorFromStyleId(id);
+    sm.querySelectorAll('Pair').forEach(pair => {
+      const key     = pair.querySelector('key')?.textContent?.trim();
+      const styleId = pair.querySelector('styleUrl')?.textContent?.trim().replace(/^#/, '');
+      if (key === 'normal') {
+        const resolved = (styleId && styles[styleId]) || {};
+        styles[id] = {
+          color: resolved.color || directColor,
+          href:  resolved.href  || '',
+        };
+      }
+    });
+  });
+
+  return styles;
+}
+
 function placeKmlMarkers(kmlText) {
   let count = 0;
   try {
-    const dom = new DOMParser().parseFromString(kmlText, 'application/xml');
-    const pms = dom.querySelectorAll('Placemark');
+    const dom    = new DOMParser().parseFromString(kmlText, 'application/xml');
+    const styles = parseKmlStyles(dom);
+    const pms    = dom.querySelectorAll('Placemark');
 
     pms.forEach(pm => {
       const name    = pm.querySelector('name')?.textContent?.trim() || '';
+      // Skip accommodation entries — managed separately via the Gantt
+      if (/accom/i.test(name)) return;
       const descRaw = pm.querySelector('description')?.textContent?.trim() || '';
       const coord   = pm.querySelector('coordinates')?.textContent?.trim() || '';
       if (!coord) return;
@@ -1447,14 +1545,18 @@ function placeKmlMarkers(kmlText) {
       const lng = parseFloat(lngStr), lat = parseFloat(latStr);
       if (isNaN(lat) || isNaN(lng)) return;
 
+      // ── Look up this placemark's style ────────────────────────
+      const rawStyleUrl = pm.querySelector('styleUrl')?.textContent?.trim() || '';
+      const styleId     = rawStyleUrl.replace(/^#/, '');
+      const style       = styles[styleId] || {};
+      // Belt-and-braces: if style lookup missed, try extracting colour from styleUrl directly
+      const color = style.color || colorFromStyleId(styleId) || '#f2b880';
+      const emoji = emojiFromIconHref(style.href);
+
       // ── Parse description ──────────────────────────────────────
-      // Google My Maps descriptions are HTML fragments, often containing
-      // a <table> of key/value pairs (e.g. address, hours, phone, website).
       let descHtml = '';
       if (descRaw) {
         const descDoc = new DOMParser().parseFromString(descRaw, 'text/html');
-
-        // 1. Check for structured table rows (My Maps custom fields)
         const rows = [...descDoc.querySelectorAll('tr')];
         if (rows.length > 0) {
           const parts = [];
@@ -1469,11 +1571,8 @@ function placeKmlMarkers(kmlText) {
           });
           if (parts.length) descHtml = parts.slice(0, 5).join('<br>');
         }
-
-        // 2. If no table, grab meaningful paragraph/div text
         if (!descHtml) {
           const body = descDoc.body;
-          // Pull any links as clickable
           const links = [...body.querySelectorAll('a[href]')];
           const plainText = body.textContent.trim().substring(0, 220);
           const linkHtml  = links.slice(0,2).map(a =>
@@ -1483,19 +1582,28 @@ function placeKmlMarkers(kmlText) {
         }
       }
 
-      // ── Google Maps deep-link ──────────────────────────────────
       const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(name)}/@${lat},${lng},17z`;
 
       const popup = `
-        <strong style="font-size:12px;display:block;margin-bottom:5px">${name}</strong>
-        ${descHtml ? `<div style="font-size:10px;color:#7c5c5c;line-height:1.55;margin-bottom:6px">${descHtml}</div>` : ''}
-        <a href="${mapsUrl}" target="_blank"
-           style="font-size:10px;color:#966b9d;text-decoration:none;font-weight:500">
-          View on Google Maps →
-        </a>
+        <strong style="font-size:12px;display:block;margin-bottom:4px">${name}</strong>
+        ${descHtml ? `<div style="font-size:10px;color:#7c5c5c;line-height:1.55;margin-bottom:5px">${descHtml}</div>` : ''}
+        <div style="margin-top:6px">
+          <a href="${mapsUrl}" target="_blank"
+             style="font-size:10px;color:#966b9d;text-decoration:none;font-weight:500">
+            View on Google Maps →
+          </a>
+        </div>
       `;
 
-      const icon = L.divIcon({ html: pinHTML('#f2b880', 10), iconSize:[10,10], className:'', iconAnchor:[5,5] });
+      // ── Plain coloured dot matching My Maps colour ────────────
+      const pinHtml = `<div style="
+        width:14px;height:14px;border-radius:50%;
+        background:${color};
+        border:2px solid rgba(255,255,255,0.9);
+        box-shadow:0 2px 6px rgba(0,0,0,.32);
+      "></div>`;
+
+      const icon = L.divIcon({ html: pinHtml, iconSize:[14,14], className:'', iconAnchor:[7,7] });
       const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(popup, { maxWidth: 270 });
       markers.push(m);
       count++;
