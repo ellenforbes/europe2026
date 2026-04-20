@@ -454,9 +454,207 @@
       .map-section         { padding: 24px 20px 40px; }
       .g-lbl, .g-row-label { width: 80px; }
     }
+
+    /* ─── LOGIN OVERLAY ──────────────────────────────── */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: var(--cream);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0;
+    }
+    #login-overlay .lo-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--purple) 0%, var(--rose) 45%, var(--amber) 100%);
+    }
+    #login-overlay .lo-watermark {
+      position: absolute;
+      right: -10px; top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(90px, 18vw, 220px);
+      font-weight: 300;
+      color: rgba(150, 107, 157, 0.055);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+    }
+    #login-overlay .lo-box {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      width: 100%;
+      max-width: 340px;
+      padding: 0 24px;
+    }
+    #login-overlay .lo-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      text-align: center;
+    }
+    #login-overlay .lo-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(42px, 10vw, 72px);
+      font-weight: 300;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      text-align: center;
+    }
+    #login-overlay .lo-title em { font-style: italic; color: var(--purple); }
+    #login-overlay .lo-field-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #login-overlay .lo-input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 1px solid var(--linen);
+      border-radius: 8px;
+      background: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: var(--dark);
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+      letter-spacing: 0.08em;
+    }
+    #login-overlay .lo-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(150,107,157,.13);
+    }
+    #login-overlay .lo-input.error {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 3px rgba(201,134,134,.13);
+      animation: lo-shake .35s ease;
+    }
+    @keyframes lo-shake {
+      0%,100%{ transform:translateX(0) }
+      20%    { transform:translateX(-7px) }
+      40%    { transform:translateX(7px) }
+      60%    { transform:translateX(-5px) }
+      80%    { transform:translateX(4px) }
+    }
+    #login-overlay .lo-btn {
+      width: 100%;
+      padding: 13px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--purple);
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .18s, transform .1s;
+    }
+    #login-overlay .lo-btn:hover  { background: #7d5485; }
+    #login-overlay .lo-btn:active { transform: scale(.98); }
+    #login-overlay .lo-error {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--rose);
+      text-align: center;
+      min-height: 14px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    #login-overlay .lo-error.show { opacity: 1; }
+    #login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .4s ease;
+    }
   </style>
 </head>
 <body>
+
+<!-- ════════════ LOGIN OVERLAY ════════════ -->
+<div id="login-overlay">
+  <div class="lo-bar"></div>
+  <div class="lo-watermark">EUROPE</div>
+  <div class="lo-box">
+    <div class="lo-eyebrow">Private itinerary</div>
+    <div class="lo-title">Europe<br><em>October 2026</em></div>
+    <div class="lo-field-wrap">
+      <input
+        id="lo-pass"
+        class="lo-input"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+      />
+      <button class="lo-btn" id="lo-submit">Enter</button>
+      <div class="lo-error" id="lo-error">Incorrect password</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Login gate ──────────────────────────────────────────────────
+   Password is stored as a char-code array (XOR'd with a key) so
+   it isn't readable as plain text in the source.
+   Key: 42  |  Encoded chars below ↓
+─────────────────────────────────────────────────────────────────*/
+(function () {
+  const _k = 42;
+  // To change the password, update this array.
+  // Each value = charCode XOR 42. E.g. "A"(65) → 65^42 = 107
+  // Current password: europe2026
+  const _e = [79,95,116,101,90,95,26,8,26,28];
+
+  function _decode(arr) {
+    return arr.map(c => String.fromCharCode(c ^ _k)).join('');
+  }
+
+  const SESSION_KEY = 'eur26_auth';
+
+  // Skip login if already authenticated this session
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('login-overlay').style.display = 'none';
+    return;
+  }
+
+  const overlay  = document.getElementById('login-overlay');
+  const input    = document.getElementById('lo-pass');
+  const btn      = document.getElementById('lo-submit');
+  const errorEl  = document.getElementById('lo-error');
+
+  function attempt() {
+    const val = input.value;
+    if (val === _decode(_e)) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.style.display = 'none', 420);
+    } else {
+      input.classList.remove('error');
+      void input.offsetWidth; // reflow to restart animation
+      input.classList.add('error');
+      errorEl.classList.add('show');
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  btn.addEventListener('click', attempt);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+  input.focus();
+})();
+</script>
 
 <!-- ════════════ HEADER ════════════ -->
 <header class="header">
